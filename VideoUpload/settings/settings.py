@@ -16,6 +16,22 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 数据库URI
 DB_URI = 'mysql+pymysql://schedule:Schedule123sun@rm-3ns1f77g7856g41371o.mysql.rds.aliyuncs.com:3306/serverdemo'
 
+# --------------------------- 阿里OSS配置 ---------------------------
+# 实例名
+BUCKET_NAME = 'videoex'
+
+# 地域节点
+ENDPOINT = 'oss-cn-hongkong.aliyuncs.com'
+
+# API授权账户
+ACCESS_KEY_ID = 'LTAI5t6hDp5XChAmrLDnqtWG'
+
+# 账户密钥
+ACCESS_KEY_SECRET = '1j6mVWA5eIJqxfArbFLO8gCbCrTrCi'
+
+# 文件存储目录
+OSS_SAVE_DIR = 'video'
+
 # --------------------------- 窗口的基本样式配置 ---------------------------
 # 窗口字体
 WIN_FONT = ('宋体', 15)
@@ -25,6 +41,12 @@ MENU_FONT = ('黑体', 12)
 
 # 元素边距
 ELEMENT_PAD = (20, 25)
+
+# 视频文件选择按钮的文件类型
+VIDEO_FILE_TYPES = (('ALL Files', '*.mp4'),)
+
+# 字幕文件SRT选择按钮的文件类型
+SRT_FILE_TYPES = (('ALL Files', '*.srt'),)
 
 # 窗口主题
 GUI_THEMES = 'DarkBlue1'
