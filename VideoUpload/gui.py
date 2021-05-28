@@ -465,7 +465,7 @@ class VideoCategoryWin(BaseWin):
 
         # 获取所选表格的下标
         index = video_subcategory[0]
-        logger.debug(f'所选表格行 -> {index}')
+        logger.debug(f'所选视频子分类表格行 -> {index}')
         video_subcategory_obj = self.all_video_subcategory[index]
 
         msg = f'确认删除视频子分类【 {video_subcategory_obj} 】\n\n' \
@@ -479,11 +479,10 @@ class VideoCategoryWin(BaseWin):
                 try:
                     session.delete(video_subcategory_obj)
                     session.commit()
-                    session.close()
                 except DatabaseError as e:
                     logger.error(e)
                     content = f'分类【 {video_subcategory_obj.subcategory_name} 】删除失败，数据库异常！！！\n'
-                    sg.Popup(content, title='数据库异常', text_color=settings.POPUP_ERROR_COLOR, font=settings.POPUP_FONT)
+                    sg.popup_error(content, title='数据库异常', text_color=settings.POPUP_ERROR_COLOR, font=settings.POPUP_FONT)
                     return
 
             # 更新子分类表格数据
@@ -493,6 +492,7 @@ class VideoCategoryWin(BaseWin):
             msg = f'子分类【 {video_subcategory_obj.subcategory_name} 】删除成功\n\n' \
                   f'子分类id  ->  {video_subcategory_obj.subcategory_id}\n\n' \
                   f'子分类名  ->  {video_subcategory_obj.subcategory_name}\n'
+            logger.info(msg)
             sg.Popup(msg, title='删除成功', text_color=settings.POPUP_SUCCESS_COLOR, font=settings.POPUP_FONT)
 
     def _del_video_big_category(self, value_dict):
@@ -507,20 +507,45 @@ class VideoCategoryWin(BaseWin):
             sg.Popup('请选择你要删除的分类数据\n', title='请选择', font=settings.POPUP_FONT)
             return
 
-        if len(video_category) > 0:
-            # 说明有选中数据
-            print(video_category)
-            index = video_category[0]
-            video_category_obj = self.all_video_category[index]
+        # 获取视频大分类所选表格行即下标
+        index = video_category[0]
+        logger.debug(f'所选视频大分类表格行 -> {index}')
+        video_category_obj = self.all_video_category[index]
 
-            content = f'确认删除大分类【{video_category_obj}】\n\n' \
-                      f'大分类id  ->  {video_category_obj.category_id}\n\n' \
-                      f'大分类名  ->  {video_category_obj.category_name}\n'
-            ret = sg.popup_yes_no(content, title='确认删除大分类', font=settings.POPUP_FONT, text_color='red')
+        msg = f'确认删除大分类【{video_category_obj}】\n\n' \
+              f'大分类id  ->  {video_category_obj.category_id}\n\n' \
+              f'大分类名  ->  {video_category_obj.category_name}\n'
+        ret = sg.popup_yes_no(msg, title='确认删除大分类', font=settings.POPUP_FONT, text_color=settings.POPUP_ERROR_COLOR)
 
-            if ret is not None and ret.lower() == 'yes':
-                # TODO 数据库删除大分类数据
-                pass
+        if ret is not None and ret.lower() == 'yes':
+            # 数据库删除视频大分类数据
+            with DBSession() as session:
+                try:
+                    session.delete(video_category_obj)  # 删除视频大分类, 级联删除相关联的子分类
+                except DatabaseError as e:
+                    session.rollback()  # 发送错误，回滚数据
+                    logger.error(e)
+                    msg = f'分类【 {video_category_obj.category_name} 】删除失败，数据库异常！！！\n'
+                    sg.popup_error(msg, title='数据库异常', text_color=settings.POPUP_ERROR_COLOR, font=settings.POPUP_FONT)
+                    return
+                else:
+                    session.commit()
+
+            # 更新大分类数据
+            del self.all_video_category[index]
+            self._update_video_category()
+
+            # 更新子分类数据
+            self.all_video_subcategory = [video_subcategory for video_subcategory in self.all_video_subcategory
+                                          if video_subcategory.parent_id != video_category_obj.id]
+
+            self._update_video_subcategory()
+
+            msg = f'分类【 {video_category_obj.category_name} 】删除成功\n\n' \
+                  f'分类id  ->  {video_category_obj.category_id}\n\n' \
+                  f'分类名  ->  {video_category_obj.category_name}\n'
+            logger.info(msg)
+            sg.Popup(msg, title='删除成功', text_color=settings.POPUP_SUCCESS_COLOR, font=settings.POPUP_FONT)
 
     def add_video_big_category(self, value_dict: dict):
         """
@@ -648,7 +673,7 @@ class VideoCategoryWin(BaseWin):
                 new_video_subcategory = VideoSubCategory(
                     subcategory_id=subcategory_id,
                     subcategory_name=subcategory_name,
-                    parent_id=parent_category.category_id
+                    parent_id=parent_category.id
                 )
                 session.add(new_video_subcategory)
                 session.commit()

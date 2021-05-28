@@ -29,7 +29,11 @@ class VideoCategory(Base):
     category_name = Column(String(255), comment='视频大分类名称')
 
     # 一个大分类对应多个子分类
-    sub_categorys = relationship('VideoSubCategory')
+    sub_categorys = relationship(
+        'VideoSubCategory',
+        back_populates='video_big_category',
+        cascade='all, delete, delete-orphan'
+    )
 
     def __repr__(self):
         return self.category_name
@@ -41,11 +45,16 @@ class VideoSubCategory(Base):
     __tablename__ = 'table_subcategory'
 
     id = Column(Integer, primary_key=True, autoincrement=True, comment='主键id')
-    subcategory_id = Column(Integer,  comment='视频子分类id')
-    subcategory_name = Column(String(255),  comment='视频子分类名称')
+    subcategory_id = Column(Integer, comment='视频子分类id')
+    subcategory_name = Column(String(255), comment='视频子分类名称')
 
     # 子分类对应的大分类id
-    parent_id = Column(Integer,  ForeignKey('table_category.category_id'), comment='所属大分类id')
+    parent_id = Column(Integer, ForeignKey('table_category.id'), comment='所属大分类id')
+
+    video_big_category = relationship(
+        'VideoCategory',
+        back_populates='sub_categorys'
+    )
 
     def __repr__(self):
         return self.subcategory_name
