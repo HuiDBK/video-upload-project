@@ -54,6 +54,9 @@ GUI_THEMES = 'DarkBlue1'
 # 字体突出颜色
 FONT_HIGHLIGHT_COLOR = 'red'
 
+# 元素禁止使用时的背景颜色
+ELEMENT_DISABLE_BG_COLOR = '#97755C'
+
 # 窗口动态图
 WIN_GIF = None
 
