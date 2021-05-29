@@ -3,7 +3,7 @@
 # @Author: Hui
 # @Desc: { 项目数据库表模型模块 }
 # @Date: 2021/05/22 23:14
-import settings
+from settings import DBConfigManage
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String, Integer, Text, create_engine, ForeignKey
@@ -12,7 +12,7 @@ from sqlalchemy import Column, String, Integer, Text, create_engine, ForeignKey
 Base = declarative_base()
 
 # 初始化数据库连接:
-db_engine = create_engine(settings.DB_URI)
+db_engine = create_engine(DBConfigManage().db_url)
 
 # 创建db_session类型:
 DBSession = sessionmaker(bind=db_engine, expire_on_commit=False)
@@ -72,7 +72,7 @@ class VideoSubCategory(Base):
     subcategory_name = Column(String(255), comment='视频子分类名称')
 
     # 子分类对应的大分类id
-    parent_id = Column(Integer, ForeignKey('table_category.id'), comment='所属大分类id')
+    parent_id = Column(Integer, ForeignKey('table_category.category_id'), comment='所属大分类id')
 
     video_big_category = relationship(
         'VideoCategory',

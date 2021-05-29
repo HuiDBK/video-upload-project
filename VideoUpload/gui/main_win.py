@@ -12,6 +12,7 @@ import threading
 from gui import BaseWin
 import PySimpleGUI as sg
 from pysubs2 import SSAFile
+from settings import OSSConfigManage
 from datetime import datetime, timedelta
 from sqlalchemy.exc import DatabaseError
 from gui.category_win import VideoCategoryWin
@@ -213,8 +214,10 @@ class MainWin(BaseWin):
         video_item_id = str(uuid.uuid1())  # 生成视频唯一id
         video_save_name = video_item_id + '.mp4'
         srt_save_name = video_item_id + '.srt'
-        video_save_path = settings.OSS_SAVE_DIR + '/' + video_save_name
-        srt_save_path = settings.OSS_SAVE_DIR + '/' + srt_save_name
+        oss_save_dir = OSSConfigManage().oss_save_dir
+
+        video_save_path = oss_save_dir + '/' + video_save_name
+        srt_save_path = oss_save_dir + '/' + srt_save_name
 
         try:
             video_url = utils.oss_server.put_obj_from_file(video_save_path, video_path)
@@ -236,8 +239,8 @@ class MainWin(BaseWin):
                 # 保存视频信息到数据库
                 hot_feeds = HotFeeds(
                     item_id=video_item_id,
-                    item_type=video_big_category.id,
-                    sub_category=video_subcategory.id,
+                    item_type=video_big_category.category_id,
+                    sub_category=video_subcategory.subcategory_id,
                     video_url=video_url,
                     sub_url=srt_url
                 )

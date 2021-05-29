@@ -12,25 +12,27 @@ import logging.config
 # 项目根路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# --------------------------- 数据库配置 ---------------------------
-# 数据库URI
-DB_URI = 'mysql+pymysql://schedule:Schedule123sun@rm-3ns1f77g7856g41371o.mysql.rds.aliyuncs.com:3306/serverdemo'
+# # --------------------------- 数据库配置 ---------------------------
+# # 数据库URI
+# DB_URI = DBConfigManage().db_url
 
-# --------------------------- 阿里OSS配置 ---------------------------
-# 实例名
-BUCKET_NAME = 'videoex'
-
-# 地域节点
-ENDPOINT = 'oss-cn-hongkong.aliyuncs.com'
-
-# API授权账户
-ACCESS_KEY_ID = 'LTAI5t6hDp5XChAmrLDnqtWG'
-
-# 账户密钥
-ACCESS_KEY_SECRET = '1j6mVWA5eIJqxfArbFLO8gCbCrTrCi'
-
-# 文件存储目录
-OSS_SAVE_DIR = 'video'
+# # --------------------------- 阿里OSS配置 ---------------------------
+# oss_config = OSSConfigManage()
+#
+# # 实例名
+# BUCKET_NAME = oss_config.bucket_name
+#
+# # 地域节点
+# ENDPOINT = oss_config.endpoint
+#
+# # API授权账户
+# ACCESS_KEY_ID = oss_config.access_key_id
+#
+# # 账户密钥
+# ACCESS_KEY_SECRET = oss_config.access_key_secret
+#
+# # 文件存储目录
+# OSS_SAVE_DIR = oss_config.oss_save_dir
 
 # --------------------------- 窗口的基本样式配置 ---------------------------
 # 窗口字体
@@ -95,7 +97,7 @@ TAB_SELECTED_COLOR = 'green'
 
 # --------------------------- 项目日志配置 ---------------------------
 # 日志配置文件
-LOG_CONF_FILE = os.path.join(BASE_DIR, 'settings/logging.yaml')
+LOG_CONF_FILE = os.path.join(BASE_DIR, 'settings/yaml_conf/logging.yaml')
 
 
 def setup_logging(default_path=LOG_CONF_FILE, default_level=logging.DEBUG, env_key='LOG_CFG'):
@@ -137,6 +139,8 @@ def main():
     logger.info('info log test')
     logger.warning('warning log test')
     logger.error('error log test')
+
+    print(DB_URI)
 
 
 if __name__ == '__main__':

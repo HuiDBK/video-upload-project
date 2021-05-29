@@ -429,7 +429,7 @@ class VideoCategoryWin(BaseWin):
                 new_video_subcategory = VideoSubCategory(
                     subcategory_id=subcategory_id,
                     subcategory_name=subcategory_name,
-                    parent_id=parent_category.id
+                    parent_id=parent_category.category_id
                 )
                 session.add(new_video_subcategory)
                 session.commit()
