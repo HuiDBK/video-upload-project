@@ -12,6 +12,13 @@ import logging.config
 # 项目根路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# 作者信息
+AUTHOR = '忆想不到的晖'
+VERSION = 'V1.0.0'
+EMAIL = '2228157740@qq.com'
+DESC = '用代码谱写生活，让世界更有趣！！！'
+COPYRIGHT = 'CopyRight©2020-2021 编程小灰 ithui.top 赣ICP备20000693号'
+
 # # --------------------------- 数据库配置 ---------------------------
 # # 数据库URI
 # DB_URI = DBConfigManage().db_url
@@ -51,13 +58,15 @@ VIDEO_FILE_TYPES = (('ALL Files', '*.mp4'),)
 SRT_FILE_TYPES = (('ALL Files', '*.srt'),)
 
 # 窗口主题
+# GUI_THEMES = 'Dark'
 GUI_THEMES = 'DarkBlue1'
+# GUI_THEMES = 'DarkBlue12'
 
 # 字体突出颜色
 FONT_HIGHLIGHT_COLOR = 'red'
 
-# 元素禁止使用时的背景颜色
-ELEMENT_DISABLE_BG_COLOR = '#97755C'
+# 元素禁止使用时的背景颜色, 默认主题颜色
+ELEMENT_DISABLE_BG_COLOR = ''
 
 # 窗口动态图
 WIN_GIF = None
@@ -139,8 +148,6 @@ def main():
     logger.info('info log test')
     logger.warning('warning log test')
     logger.error('error log test')
-
-    print(DB_URI)
 
 
 if __name__ == '__main__':

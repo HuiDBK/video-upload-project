@@ -5,8 +5,8 @@
 # @Date: 2021/05/29 15:47
 import logging
 import settings
+from gui import BaseWin
 import PySimpleGUI as sg
-from gui import BaseWin, MainWin, VideoCategoryWin
 from settings import DBConfigManage, OSSConfigManage
 
 logger = logging.getLogger('server')
@@ -410,6 +410,10 @@ class AccountWin(BaseWin):
         窗口事件监听
         :return:
         """
+
+        # 解决循环引用问题
+        from gui import MainWin, VideoCategoryWin
+
         while True:
             event, value_dict = self.window.read()
             print(event)

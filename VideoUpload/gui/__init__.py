@@ -19,6 +19,7 @@ class BaseWin(object):
     def __init__(self, title):
         self.title = title
         self.layout = self.init_layout()
+        self.win_theme = settings.GUI_THEMES    # 窗口主题
         self.window = sg.Window(
             title=self.title,
             layout=self.layout,
@@ -70,6 +71,7 @@ class BaseWin(object):
         pass
 
 
-from .main_win import MainWin
+# 注意导包顺序, 不然会导致循环引用问题
 from .category_win import VideoCategoryWin
 from .account_win import AccountWin
+from .main_win import MainWin

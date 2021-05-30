@@ -6,10 +6,10 @@
 import logging
 import settings
 import threading
+from gui import BaseWin
 import PySimpleGUI as sg
 from sqlalchemy import or_
 from sqlalchemy.exc import DatabaseError
-from gui import BaseWin, MainWin, AccountWin
 from models import DBSession, VideoCategory, VideoSubCategory
 
 logger = logging.getLogger('server')
@@ -462,6 +462,9 @@ class VideoCategoryWin(BaseWin):
         窗口事件监听
         :return:
         """
+        # 解决循环引用问题
+        from gui import MainWin, AccountWin
+
         self.window.disable()  # 数据未获取让窗口不可用
         while True:
             event, value_dict = self.window.read(timeout=10)
@@ -487,6 +490,7 @@ class VideoCategoryWin(BaseWin):
                 self._update_video_subcategory()
                 self.db_error_flag = 0
 
+            # 窗口跳转
             if event in (sg.WIN_CLOSED, 'Quit') or 'back_main_win' in event:
                 self.quit()
                 MainWin('main').run()

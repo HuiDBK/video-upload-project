@@ -9,13 +9,12 @@ import utils
 import logging
 import settings
 import threading
-from gui import BaseWin
 import PySimpleGUI as sg
 from pysubs2 import SSAFile
 from settings import OSSConfigManage
 from datetime import datetime, timedelta
 from sqlalchemy.exc import DatabaseError
-from gui.category_win import VideoCategoryWin
+from gui import BaseWin, VideoCategoryWin, AccountWin
 from models import DBSession, VideoCategory, HotFeeds, SubTitle
 
 logger = logging.getLogger('server')
@@ -33,8 +32,12 @@ class MainWin(BaseWin):
             '添加视频分类::add_video_category',
             '删除视频分类::del_video_category']],
 
+        ['账户管理', [
+            '数据库账户管理::db_account_manage',
+            'OSS 账户管理::oss_account_manage']],
+
         ['帮助', [
-            '关于作者::about_author']],
+            '版本信息::about_author']],
     ]
 
     # 元素边距
@@ -60,7 +63,6 @@ class MainWin(BaseWin):
 
         self.init_data()
         super().__init__(title)
-        # self.window.ElementPadding = self.el_pad_tuple
 
     def init_data(self):
         """
@@ -367,6 +369,16 @@ class MainWin(BaseWin):
                 self.add_video_category()
             elif 'del_video_category' in event:
                 self.del_video_category()
+            elif 'db_account_manage' in event or 'oss_account_manage' in event:
+                self.quit()
+                AccountWin('account').run()
+            elif 'about_author' in event:
+                msg = f'作者：{settings.AUTHOR}\n\n\n' \
+                      f'版本：{settings.VERSION}\n\n\n' \
+                      f'邮箱：{settings.EMAIL}\n\n\n' \
+                      f'简介：{settings.DESC}\n\n\n' \
+                      f'{settings.COPYRIGHT}\n'
+                sg.popup(msg, title='项目版本信息', font=settings.POPUP_FONT)
 
 
 def main():
