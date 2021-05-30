@@ -6,10 +6,10 @@
 import logging
 import settings
 import threading
-from gui import BaseWin
 import PySimpleGUI as sg
 from sqlalchemy import or_
 from sqlalchemy.exc import DatabaseError
+from gui import BaseWin, MainWin, AccountWin
 from models import DBSession, VideoCategory, VideoSubCategory
 
 logger = logging.getLogger('server')
@@ -20,7 +20,8 @@ class VideoCategoryWin(BaseWin):
 
     menus = [
         ['窗口跳转', [
-            '上传视频窗口::back_main_win']],
+            '上传视频窗口::back_main_win',
+            '账户管理窗口::back_account_win']],
         ['数据同步刷新', [
             '视频分类数据同步::video_category_synchronize']]
     ]
@@ -488,9 +489,11 @@ class VideoCategoryWin(BaseWin):
 
             if event in (sg.WIN_CLOSED, 'Quit') or 'back_main_win' in event:
                 self.quit()
-                from gui.main_win import MainWin
-                main_win = MainWin('main')
-                main_win.run()
+                MainWin('main').run()
+                break
+            elif 'back_account_win' in event:
+                self.quit()
+                AccountWin('account').run()
                 break
 
             elif 'video_category_synchronize' in event:

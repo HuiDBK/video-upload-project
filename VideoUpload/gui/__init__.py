@@ -72,3 +72,4 @@ class BaseWin(object):
 
 from .main_win import MainWin
 from .category_win import VideoCategoryWin
+from .account_win import AccountWin

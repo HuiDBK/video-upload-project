@@ -5,14 +5,21 @@
 # @Date: 2021/05/29 15:47
 import logging
 import settings
-from gui import BaseWin
 import PySimpleGUI as sg
+from gui import BaseWin, MainWin, VideoCategoryWin
 from settings import DBConfigManage, OSSConfigManage
 
 logger = logging.getLogger('server')
 
 
 class AccountWin(BaseWin):
+    """账户管理窗口"""
+
+    menus = [
+        ['窗口跳转', [
+            '上传视频窗口::back_main_win',
+            '分类管理窗口::back_category_win']]
+    ]
 
     def __init__(self, title):
 
@@ -23,15 +30,19 @@ class AccountWin(BaseWin):
         self.oss_config_manage = OSSConfigManage()
 
         # 数据库信息
+        self.db_url = self.db_config_manage.db_url
         self.db_user = self.db_config_manage.db_user
         self.db_password = self.db_config_manage.db_password
-        self.db_url = self.db_config_manage.db_url
+        self.db_host = self.db_config_manage.db_host
+        self.db_port = self.db_config_manage.db_port
+        self.db_name = self.db_config_manage.db_name
 
         # oss信息
         self.bucket_name = self.oss_config_manage.bucket_name  # oss实例
         self.endpoint = self.oss_config_manage.endpoint  # 地域节点
         self.access_key_id = self.oss_config_manage.access_key_id  # 授权ID
         self.access_key_secret = self.oss_config_manage.access_key_secret  # 授权密钥
+        self.oss_save_dir = self.oss_config_manage.oss_save_dir  # 保存目录
 
         super().__init__(title)
 
@@ -41,18 +52,40 @@ class AccountWin(BaseWin):
         :return: db_manage_frame
         """
         db_manage_frame = [
-            [sg.Text('数据库地址')],
             [
-                sg.Input(default_text=self.db_url, key='db_url', readonly=True,
+                sg.Text('数据库地址'),
+                sg.Input(default_text=self.db_url, key='db_url', readonly=True, size=(40, 0),
                          disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
-                sg.Button('更改', key='change_db_url')
+                sg.Button('复制', key='copy_db_url')
+            ],
+
+            [
+                sg.Text('数据库主机'),
+                sg.Input(default_text=self.db_host, key='db_host', readonly=True, size=(40, 0),
+                         disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
+                sg.Button('更改', key='change_db_host')
+            ],
+
+            [
+                sg.Text('数据库端口'),
+                sg.Input(default_text=self.db_port, key='db_port', readonly=True, size=(40, 0),
+                         disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
+                sg.Button('更改', key='change_db_port')
+            ],
+
+            [
+                sg.Text('数据库名称'),
+                sg.Input(default_text=self.db_name, key='db_name', readonly=True, size=(40, 0),
+                         disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
+                sg.Button('更改', key='change_db_name')
             ],
 
             [sg.Text('数据库账号')],
             [
                 sg.Input(default_text=self.db_user, key='db_user', readonly=True,
+                         password_char=self.password_char,
                          disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
-                sg.Button('更改', key='change_db_user')
+                sg.Button('查看', key='show_db_user'), sg.Button('更改', key='change_db_user')
             ],
 
             [sg.Text('数据库密码')],
@@ -72,18 +105,27 @@ class AccountWin(BaseWin):
         """
         oss_manage_frame = [
             [
-                sg.Text('OSS 实例'),
+                sg.Text('bucket 实例 '),
                 sg.Input(default_text=self.bucket_name, key='oss_bucket', size=(33, 0), readonly=True,
                          disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
                 sg.Button('更改', key='change_oss_bucket')
             ],
 
             [
-                sg.Text('地域节点'),
+                sg.Text('endpoint节点'),
                 sg.Input(default_text=self.endpoint, key='oss_endpoint', size=(33, 0), readonly=True,
                          disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
                 sg.Button('更改', key='change_oss_endpoint')
             ],
+
+            [
+                sg.Text('OSS 保存目录'),
+                sg.Input(default_text=self.oss_save_dir, key='oss_save_dir', size=(33, 0), readonly=True,
+                         disabled_readonly_background_color=settings.ELEMENT_DISABLE_BG_COLOR),
+                sg.Button('更改', key='change_oss_save_dir')
+            ],
+
+            [sg.Text('', pad=(0, 0))],
 
             [sg.Text('授权ID')],
             [
@@ -130,160 +172,238 @@ class AccountWin(BaseWin):
             selected_background_color=settings.TAB_SELECTED_COLOR
         )
         layout = [
+            [sg.Menu(self.menus, font=settings.MENU_FONT)],
             [sg.pin(account_tab_group)]
         ]
         return layout
 
-    def _show_db_password(self):
+    # --------------- 显示数据库隐私信息 ---------------
+    def _show_db_info(self, key, event):
+        """
+        根据 key, event 查看数据库相关信息
+        :param key: 元素要显示的 key
+        :param event: 元素触发的事件
+        :return:
+        """
+        print(key)
+        print(event)
+        password_char = self.window[key].PasswordCharacter
+        if password_char == self.password_char:
+            self.window[key].update(password_char='')
+            self.window[event].update('隐藏')
+        else:
+            self.window[key].update(password_char=self.password_char)
+            self.window[event].update('查看')
+
+    def show_db_user(self, key, event):
+        """
+        查看数据库账号
+        :return:
+        """
+        self._show_db_info(key, event)
+
+    def show_db_password(self, key, event):
         """
         查看数据库密码
         :return:
         """
-        password_char = self.window['db_password'].PasswordCharacter
-        if password_char == self.password_char:
-            self.window['db_password'].update(password_char='')
-            self.window['show_db_password'].update('隐藏')
-        else:
-            self.window['db_password'].update(password_char=self.password_char)
-            self.window['show_db_password'].update('查看')
+        self._show_db_info(key, event)
 
-    def _show_oss_access_key_id(self):
+    # --------------- 显示OSS隐私信息 ---------------
+    def _show_oss_info(self, key, event):
+        """
+        根据 key, event 查看 OSS 相关信息
+        :param key: 元素要显示的 key
+        :param event: 元素触发的事件
+        :return:
+        """
+        password_char = self.window[key].PasswordCharacter
+        if password_char == self.password_char:
+            self.window[key].update(password_char='')
+            self.window[event].update('隐藏')
+        else:
+            self.window[key].update(password_char=self.password_char)
+            self.window[event].update('查看')
+
+    def show_oss_access_key_id(self, key, event):
         """
         查看 OSS 授权ID
         :return:
         """
-        password_char = self.window['access_key_id'].PasswordCharacter
-        if password_char == self.password_char:
-            self.window['access_key_id'].update(password_char='')
-            self.window['show_access_key_id'].update('隐藏')
-        else:
-            self.window['access_key_id'].update(password_char=self.password_char)
-            self.window['show_access_key_id'].update('查看')
+        self._show_oss_info(key, event)
 
-    def _show_oss_access_key_secret(self):
+    def show_oss_access_key_secret(self, key, event):
         """
         查看 OSS 授权密钥
         :return:
         """
-        password_char = self.window['access_key_secret'].PasswordCharacter
-        if password_char == self.password_char:
-            self.window['access_key_secret'].update(password_char='')
-            self.window['show_access_key_secret'].update('隐藏')
-        else:
-            self.window['access_key_secret'].update(password_char=self.password_char)
-            self.window['show_access_key_secret'].update('查看')
+        self._show_oss_info(key, event)
 
-    def _change_db_user(self):
+    # --------------- 更改数据库信息 ---------------
+    def _change_db_info(self, key):
         """
-        改变数据库账号
+        根据 key 改变数据库相关信息
+        :param key:
         :return:
         """
-        db_user = sg.popup_get_text('请输入您要更改的数据库账号\n', font=settings.POPUP_FONT)
+        messages = {
+            'db_user': '将数据库【账号】更改为: \n',
+            'db_password': '将数据库【密码】更改为: \n',
+            'db_host': '将数据库【主机地址】更改为: \n',
+            'db_port': '将数据库连接【端口】更改为: \n',
+            'db_name': '将数据库【名称】更改为: \n'
+        }
+        msg = messages.get(key)
+        db_info = sg.popup_get_text(msg, title='数据库信息更改', font=settings.POPUP_FONT)
 
-        logger.debug(db_user)
+        logger.debug(db_info)
 
-        if db_user and db_user is not None:
+        if db_info and db_info is not None:
             # 更新配置文件数据
-            self.db_user = db_user
-            self.db_config_manage.db_user = db_user
+            if key == 'db_user':
+                self.db_user = db_info
+                self.db_config_manage.db_user = db_info
+
+            elif key == 'db_password':
+                self.db_password = db_info
+                self.db_config_manage.db_password = db_info
+
+            elif key == 'db_host':
+                self.db_host = db_info
+                self.db_config_manage.db_host = db_info
+
+            elif key == 'db_port':
+                self.db_port = db_info
+                self.db_config_manage.db_port = db_info
+
+            elif key == 'db_name':
+                self.db_name = db_info
+                self.db_config_manage.db_name = db_info
+
+            # 更新配置文件
             self.db_config_manage.update()
             self.db_url = self.db_config_manage.db_url
 
             # 更新窗口数据
-            self.window['db_user'].update(self.db_user)
+            self.window[key].update(db_info)
             self.window['db_url'].update(self.db_url)
 
-    def _change_db_password(self):
+    def change_db_user(self):
         """
-        改变数据库密码
+        更改数据库账号
         :return:
         """
-        db_password = sg.popup_get_text('请输入您要更改的数据库密码\n', font=settings.POPUP_FONT)
+        self._change_db_info(key='db_user')
 
-        logger.debug(db_password)
-
-        if db_password and db_password is not None:
-            # 更新配置文件数据
-            self.db_password = db_password
-            self.db_config_manage.db_password = db_password
-            self.db_config_manage.update()
-            self.db_url = self.db_config_manage.db_url
-
-            # 更新窗口数据
-            self.window['db_password'].update(self.db_password)
-            self.window['db_url'].update(self.db_url)
-
-    def _change_oss_bucket(self):
+    def change_db_password(self):
         """
-        改变 OSS 实例名称
+        更改数据库密码
         :return:
         """
-        oss_bucket = sg.popup_get_text('请输入您要更改的Bucket实例名\n', font=settings.POPUP_FONT)
+        self._change_db_info(key='db_password')
 
-        logger.debug(oss_bucket)
+    def change_db_host(self):
+        """
+        更改数据库主机地址
+        :return:
+        """
+        self._change_db_info(key='db_host')
 
-        if oss_bucket and oss_bucket is not None:
+    def change_db_port(self):
+        """
+        更改数据库主机连接端口
+        :return:
+        """
+        self._change_db_info(key='db_port')
+
+    def change_db_name(self):
+        """
+        更改数据库名称
+        :return:
+        """
+        self._change_db_info(key='db_name')
+
+    # --------------- 更改OSS信息 ---------------
+    def _change_oss_info(self, key):
+        """
+        根据 key 改变 OSS相关配置信息
+        :param key: 要改变的配置选项
+        :return:
+        """
+        messages = {
+            'oss_bucket': '将OSS【bucket实例】更改为: \n',
+            'oss_endpoint': '将OSS【endpoint节点】更改为: \n',
+            'oss_save_dir': '将OSS【保存目录】更改为: \n',
+            'access_key_id': '将OSS【授权ID】更改为: \n',
+            'access_key_secret': '将OSS【授权密钥】更改为: \n'
+        }
+        msg = messages.get(key)
+        oss_info = sg.popup_get_text(msg, title='OSS信息更改', font=settings.POPUP_FONT)
+
+        logger.debug(oss_info)
+
+        if oss_info and oss_info is not None:
             # 更新配置文件数据
-            self.oss_bucket = oss_bucket
-            self.oss_config_manage.bucket_name = oss_bucket
+            if key == 'oss_bucket':
+                self.bucket_name = oss_info
+                self.oss_config_manage.bucket_name = oss_info
+
+            elif key == 'oss_endpoint':
+                self.oss_endpoint = oss_info
+                self.oss_config_manage.endpoint = oss_info
+
+            elif key == 'oss_save_dir':
+                self.oss_save_dir = oss_info
+                self.oss_config_manage.oss_save_dir = oss_info
+
+            elif key == 'access_key_id':
+                self.access_key_id = oss_info
+                self.oss_config_manage.access_key_id = oss_info
+
+            elif key == 'access_key_secret':
+                self.access_key_secret = oss_info
+                self.oss_config_manage.access_key_secret = oss_info
+
+            # 更新配置文件
             self.oss_config_manage.update()
 
             # 更新窗口数据
-            self.window['oss_bucket'].update(self.oss_bucket)
+            self.window[key].update(oss_info)
 
-    def _change_oss_endpoint(self):
+    def change_oss_bucket(self):
         """
-        改变 OSS 地域节点
+        更改 OSS bucket实例名称
         :return:
         """
-        oss_endpoint = sg.popup_get_text('请输入您要更改的地域节点信息\n', font=settings.POPUP_FONT)
+        self._change_oss_info(key='oss_bucket')
 
-        logger.debug(oss_endpoint)
-
-        if oss_endpoint and oss_endpoint is not None:
-            # 更新配置文件数据
-            self.oss_endpoint = oss_endpoint
-            self.oss_config_manage.endpoint = oss_endpoint
-            self.oss_config_manage.update()
-
-            # 更新窗口数据
-            self.window['oss_endpoint'].update(self.oss_endpoint)
-
-    def _change_access_key_id(self):
+    def change_oss_endpoint(self):
         """
-        改变授权id
+        更改 OSS endpoint地域节点
         :return:
         """
-        access_key_id = sg.popup_get_text('请输入您要更改的授权ID\n', font=settings.POPUP_FONT)
+        self._change_oss_info(key='oss_endpoint')
 
-        logger.debug(access_key_id)
-
-        if access_key_id and access_key_id is not None:
-            # 更新配置文件数据
-            self.access_key_id = access_key_id
-            self.oss_config_manage.access_key_id = access_key_id
-            self.oss_config_manage.update()
-
-            # 更新窗口数据
-            self.window['access_key_id'].update(self.access_key_id)
-
-    def _change_access_key_secret(self):
+    def change_oss_save_dir(self):
         """
-        改变 OSS 密钥
+        更改 OSS 保存目录
         :return:
         """
-        access_key_secret = sg.popup_get_text('请输入您要更改的授权密钥\n', font=settings.POPUP_FONT)
+        self._change_oss_info(key='oss_save_dir')
 
-        logger.debug(access_key_secret)
+    def change_access_key_id(self):
+        """
+        更改 OSS 授权ID
+        :return:
+        """
+        self._change_oss_info(key='access_key_id')
 
-        if access_key_secret and access_key_secret is not None:
-            # 更新配置文件数据
-            self.access_key_secret = access_key_secret
-            self.oss_config_manage.access_key_secret = access_key_secret
-            self.oss_config_manage.update()
-
-            # 更新窗口数据
-            self.window['access_key_secret'].update(self.access_key_secret)
+    def change_access_key_secret(self):
+        """
+        更改 OSS 授权密钥
+        :return:
+        """
+        self._change_oss_info(key='access_key_secret')
 
     def _event_handler(self):
         """
@@ -296,31 +416,48 @@ class AccountWin(BaseWin):
             print(value_dict)
 
             # 事件监听
-            if event in (sg.WIN_CLOSED, 'quit'):
+            if event in (sg.WIN_CLOSED, 'quit') or 'back_main_win' in event:
                 self.quit()
+                MainWin('main').run()
                 break
+            elif 'back_category_win' in event:
+                self.quit()
+                VideoCategoryWin('category').run()
+                break
+
+            # 显示隐私信息
+            elif event == 'show_db_user':
+                self.show_db_user(key='db_user', event=event)
             elif event == 'show_db_password':
-                self._show_db_password()
+                self.show_db_password(key='db_password', event=event)
             elif event == 'show_access_key_id':
-                self._show_oss_access_key_id()
+                self.show_oss_access_key_id(key='access_key_id', event=event)
             elif event == 'show_access_key_secret':
-                self._show_oss_access_key_secret()
+                self.show_oss_access_key_secret(key='access_key_secret', event=event)
 
             # 更新数据库信息
             elif event == 'change_db_user':
-                self._change_db_user()
+                self.change_db_user()
             elif event == 'change_db_password':
-                self._change_db_password()
+                self.change_db_password()
+            elif event == 'change_db_host':
+                self.change_db_host()
+            elif event == 'change_db_port':
+                self.change_db_port()
+            elif event == 'change_db_name':
+                self.change_db_name()
 
             # 更新OSS信息
             elif event == 'change_oss_bucket':
-                self._change_oss_bucket()
+                self.change_oss_bucket()
             elif event == 'change_oss_endpoint':
-                self._change_oss_endpoint()
+                self.change_oss_endpoint()
+            elif event == 'change_oss_save_dir':
+                self.change_oss_save_dir()
             elif event == 'change_access_key_id':
-                self._change_access_key_id()
+                self.change_access_key_id()
             elif event == 'change_access_key_secret':
-                self._change_access_key_secret()
+                self.change_access_key_secret()
 
     def run(self):
         self._event_handler()
