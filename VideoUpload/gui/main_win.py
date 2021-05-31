@@ -4,8 +4,10 @@
 # @Desc: { 主窗口模块 }
 # @Date: 2021/05/29 12:47
 import os
-import uuid
+import time
+import json
 import utils
+import random
 import logging
 import settings
 import threading
@@ -14,8 +16,9 @@ from pysubs2 import SSAFile
 from settings import OSSConfigManage
 from datetime import datetime, timedelta
 from sqlalchemy.exc import DatabaseError
-from gui import BaseWin, VideoCategoryWin, AccountWin
 from models import DBSession, VideoCategory, HotFeeds, SubTitle
+from gui import BaseWin, VideoCategoryWin, AccountWin, UploadedWin
+
 
 logger = logging.getLogger('server')
 
@@ -26,7 +29,7 @@ class MainWin(BaseWin):
     # 菜单项
     menus = [
         ['已上传视频信息', [
-            '查看上传视频信息::show_video_info']],
+            '查看上传视频信息::show_uploaded_video']],
 
         ['视频分类设置', [
             '添加视频分类::add_video_category',
@@ -53,6 +56,8 @@ class MainWin(BaseWin):
         self.all_video_category = None
         self.sub_categorys = None  # 当前分类对应的所有子分类
 
+        self.uploaded_video_list = list()   # 已上传视频列表
+
         # 上传标记
         # 0默认
         # 1正在上传视频
@@ -69,6 +74,19 @@ class MainWin(BaseWin):
         初始化界面数据
         :return:
         """
+
+        # 从本地文件加载已上传视频数据
+        if not os.path.exists(settings.UPLOADED_VIDEO_JSON):
+            # 不存在创建文件
+            uploaded_json = open(settings.UPLOADED_VIDEO_JSON, mode='w', encoding='utf-8')
+            uploaded_json.close()
+
+        with open(settings.UPLOADED_VIDEO_JSON, mode='r', encoding='utf-8') as f:
+            uploaded_video_json = f.read()
+
+        if uploaded_video_json:
+            self.uploaded_video_list = json.loads(uploaded_video_json)
+
         # 从数据库中获取所有视频大分类
         session = DBSession()
         all_video_category = session.query(VideoCategory).all()
@@ -89,7 +107,7 @@ class MainWin(BaseWin):
         """
         print('添加视频分类')
         self.quit()
-        category_win = VideoCategoryWin('category')
+        category_win = VideoCategoryWin(title=settings.CATEGORY_WIN_TITLE)
         category_win.run()
 
     def del_video_category(self):
@@ -213,9 +231,11 @@ class MainWin(BaseWin):
         """
 
         # 把视频存储到阿里OSS中
-        video_item_id = str(uuid.uuid1())  # 生成视频唯一id
-        video_save_name = video_item_id + '.mp4'
-        srt_save_name = video_item_id + '.srt'
+        video_item_id = str(int(time.time())) + str(random.randint(100, 999))  # 生成视频唯一id
+        video_item_id = int(video_item_id)
+        logger.debug(f'视频唯一id -> {video_item_id}, len -> {len(str(video_item_id))}')
+        video_save_name = f'{video_item_id}.mp4'
+        srt_save_name = f'{video_item_id}.srt'
         oss_save_dir = OSSConfigManage().oss_save_dir
 
         video_save_path = oss_save_dir + '/' + video_save_name
@@ -239,8 +259,10 @@ class MainWin(BaseWin):
         with DBSession() as session:
             try:
                 # 保存视频信息到数据库
+                create_time = int(time.time())
                 hot_feeds = HotFeeds(
                     item_id=video_item_id,
+                    create_time=create_time,
                     item_type=video_big_category.category_id,
                     sub_category=video_subcategory.subcategory_id,
                     video_url=video_url,
@@ -291,6 +313,14 @@ class MainWin(BaseWin):
               f'所属大类 -> {video_big_category}' \
               f'所属子类 -> {video_subcategory}'
         logger.info(msg)
+
+        # 记录每个人上传视频的信息到本地文件
+        feeds_dict = hot_feeds.as_dict()
+        logger.info(feeds_dict)
+        self.uploaded_video_list.append(feeds_dict)
+        with open(settings.UPLOADED_VIDEO_JSON, mode='w', encoding='utf-8') as f:
+            json.dump(self.uploaded_video_list, f, ensure_ascii=False, indent=2)
+
         self.reset_info()
 
     def update_subcategory(self, value_dict):
@@ -365,13 +395,22 @@ class MainWin(BaseWin):
                 self.upload_video_info(value_dict)
             elif event == 'video_big_category':
                 self.update_subcategory(value_dict)  # 切换大分类更新对应的子分类
+
+            # 视频窗口跳转
             elif 'add_video_category' in event:
                 self.add_video_category()
+                break
             elif 'del_video_category' in event:
                 self.del_video_category()
+                break
+            elif 'show_uploaded_video' in event:
+                self.quit()
+                UploadedWin(title=settings.UPLOADED_WIN_TITLE).run()
+                break
             elif 'db_account_manage' in event or 'oss_account_manage' in event:
                 self.quit()
-                AccountWin('account').run()
+                AccountWin(title=settings.ACCOUNT_WIN_TITLE).run()
+                break
             elif 'about_author' in event:
                 msg = f'作者：{settings.AUTHOR}\n\n\n' \
                       f'版本：{settings.VERSION}\n\n\n' \
@@ -382,7 +421,7 @@ class MainWin(BaseWin):
 
 
 def main():
-    MainWin('main').run()
+    MainWin(settings.MAIN_WIN_TITLE).run()
 
 
 if __name__ == '__main__':

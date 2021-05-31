@@ -72,6 +72,7 @@ class BaseWin(object):
 
 
 # 注意导包顺序, 不然会导致循环引用问题
+from .uploaded_win import UploadedWin
 from .category_win import VideoCategoryWin
 from .account_win import AccountWin
 from .main_win import MainWin

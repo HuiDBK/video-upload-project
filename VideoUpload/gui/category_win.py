@@ -21,7 +21,8 @@ class VideoCategoryWin(BaseWin):
     menus = [
         ['窗口跳转', [
             '上传视频窗口::back_main_win',
-            '账户管理窗口::back_account_win']],
+            '账户管理窗口::back_account_win',
+            '查看上传视频信息::back_uploaded_win']],
         ['数据同步刷新', [
             '视频分类数据同步::video_category_synchronize']]
     ]
@@ -463,7 +464,7 @@ class VideoCategoryWin(BaseWin):
         :return:
         """
         # 解决循环引用问题
-        from gui import MainWin, AccountWin
+        from gui import MainWin, AccountWin, UploadedWin
 
         self.window.disable()  # 数据未获取让窗口不可用
         while True:
@@ -493,11 +494,15 @@ class VideoCategoryWin(BaseWin):
             # 窗口跳转
             if event in (sg.WIN_CLOSED, 'Quit') or 'back_main_win' in event:
                 self.quit()
-                MainWin('main').run()
+                MainWin(title=settings.MAIN_WIN_TITLE).run()
                 break
             elif 'back_account_win' in event:
                 self.quit()
-                AccountWin('account').run()
+                AccountWin(title=settings.ACCOUNT_WIN_TITLE).run()
+                break
+            elif 'back_uploaded_win' in event:
+                self.quit()
+                UploadedWin(title=settings.UPLOADED_WIN_TITLE).run()
                 break
 
             elif 'video_category_synchronize' in event:
@@ -516,7 +521,7 @@ class VideoCategoryWin(BaseWin):
 
 
 def main():
-    VideoCategoryWin('category').run()
+    VideoCategoryWin(settings.CATEGORY_WIN_TITLE).run()
 
 
 if __name__ == '__main__':

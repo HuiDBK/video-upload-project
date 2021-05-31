@@ -15,31 +15,18 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 作者信息
 AUTHOR = '忆想不到的晖'
 VERSION = 'V1.0.0'
-EMAIL = '2228157740@qq.com'
+EMAIL = 'huidbk@qq.com'
 DESC = '用代码谱写生活，让世界更有趣！！！'
 COPYRIGHT = 'CopyRight©2020-2021 编程小灰 ithui.top 赣ICP备20000693号'
 
-# # --------------------------- 数据库配置 ---------------------------
-# # 数据库URI
-# DB_URI = DBConfigManage().db_url
+# 已上传视频信息json文件
+UPLOADED_VIDEO_JSON = os.path.join(BASE_DIR, 'logs/uploaded_video.json')
 
-# # --------------------------- 阿里OSS配置 ---------------------------
-# oss_config = OSSConfigManage()
-#
-# # 实例名
-# BUCKET_NAME = oss_config.bucket_name
-#
-# # 地域节点
-# ENDPOINT = oss_config.endpoint
-#
-# # API授权账户
-# ACCESS_KEY_ID = oss_config.access_key_id
-#
-# # 账户密钥
-# ACCESS_KEY_SECRET = oss_config.access_key_secret
-#
-# # 文件存储目录
-# OSS_SAVE_DIR = oss_config.oss_save_dir
+# --------------------------- 窗口的标题配置 ---------------------------
+MAIN_WIN_TITLE = 'OSS上传视频'
+CATEGORY_WIN_TITLE = '视频分类管理'
+UPLOADED_WIN_TITLE = '已上传视频信息'
+ACCOUNT_WIN_TITLE = '数据库与OSS管理'
 
 # --------------------------- 窗口的基本样式配置 ---------------------------
 # 窗口字体

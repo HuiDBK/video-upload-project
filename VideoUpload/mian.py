@@ -9,7 +9,7 @@ from gui import MainWin
 
 def main():
     settings.setup_logging()
-    MainWin('main').run()
+    MainWin(settings.MAIN_WIN_TITLE).run()
 
 
 if __name__ == '__main__':

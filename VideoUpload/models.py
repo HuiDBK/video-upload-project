@@ -6,7 +6,7 @@
 from settings import DBConfigManage
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, String, Integer, Text, create_engine, ForeignKey
+from sqlalchemy import Column, String, Integer, BIGINT, Text, create_engine, ForeignKey
 
 # 创建对象的基类:
 Base = declarative_base()
@@ -22,11 +22,28 @@ class HotFeeds(Base):
     __tablename__ = 'table_hot_feeds'
 
     id = Column(Integer, autoincrement=True, primary_key=True, comment='主键id')
-    item_id = Column(String(255), comment='视频唯一id')
+    item_id = Column(BIGINT, comment='视频唯一id')
+    create_time = Column(BIGINT, comment='上传时间')
     item_type = Column(Integer, comment='视频大分类')
     sub_category = Column(Integer, comment='视频子分类')
     video_url = Column(String(255), comment='视频地址')
     sub_url = Column(String(255), comment='srt字幕地址')
+
+    def as_dict(self):
+        """
+        将对象属性数据转成一个字典
+        :return:
+        """
+        feeds_dict = {
+            'id': self.id,
+            'item_id': self.item_id,
+            'create_time': self.create_time,
+            'item_type': self.item_type,
+            'sub_category': self.sub_category,
+            'video_url': self.video_url,
+            'sub_url': self.sub_url
+        }
+        return feeds_dict
 
 
 class SubTitle(Base):
@@ -38,7 +55,7 @@ class SubTitle(Base):
     content_ch = Column(Text, comment='中文内容')
     begin_time = Column(String(255), comment='开始时间')
     end_time = Column(String(255), comment='结束时间')
-    item_id = Column(String(255), comment='视频唯一id')
+    item_id = Column(BIGINT, comment='视频唯一id')
 
 
 class VideoCategory(Base):

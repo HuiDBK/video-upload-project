@@ -5,6 +5,7 @@
 # @Date: 2021/05/29 15:47
 import logging
 import settings
+import pyperclip
 from gui import BaseWin
 import PySimpleGUI as sg
 from settings import DBConfigManage, OSSConfigManage
@@ -18,7 +19,8 @@ class AccountWin(BaseWin):
     menus = [
         ['窗口跳转', [
             '上传视频窗口::back_main_win',
-            '分类管理窗口::back_category_win']]
+            '分类管理窗口::back_category_win',
+            '查看已上传视频信息::back_uploaded_win']]
     ]
 
     def __init__(self, title):
@@ -405,6 +407,15 @@ class AccountWin(BaseWin):
         """
         self._change_oss_info(key='access_key_secret')
 
+    def copy_db_url(self):
+        """
+        复制数据库url地址到剪切板上
+        :return:
+        """
+        db_url = self.window['db_url'].DefaultText
+        logger.debug(db_url)
+        pyperclip.copy(db_url)
+
     def _event_handler(self):
         """
         窗口事件监听
@@ -412,22 +423,30 @@ class AccountWin(BaseWin):
         """
 
         # 解决循环引用问题
-        from gui import MainWin, VideoCategoryWin
+        from gui import MainWin, VideoCategoryWin, UploadedWin
 
         while True:
             event, value_dict = self.window.read()
             print(event)
             print(value_dict)
 
-            # 事件监听
+            # 窗口跳转
             if event in (sg.WIN_CLOSED, 'quit') or 'back_main_win' in event:
                 self.quit()
-                MainWin('main').run()
+                MainWin(title=settings.MAIN_WIN_TITLE).run()
                 break
             elif 'back_category_win' in event:
                 self.quit()
-                VideoCategoryWin('category').run()
+                VideoCategoryWin(title=settings.CATEGORY_WIN_TITLE).run()
                 break
+            elif 'back_uploaded_win' in event:
+                self.quit()
+                UploadedWin(title=settings.UPLOADED_WIN_TITLE).run()
+                break
+
+            # 复制数据库地址到剪切板上
+            elif event == 'copy_db_url':
+                self.copy_db_url()
 
             # 显示隐私信息
             elif event == 'show_db_user':
@@ -468,7 +487,7 @@ class AccountWin(BaseWin):
 
 
 def main():
-    AccountWin('account').run()
+    AccountWin(settings.ACCOUNT_WIN_TITLE).run()
 
 
 if __name__ == '__main__':
