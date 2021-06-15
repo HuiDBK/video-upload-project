@@ -19,7 +19,6 @@ from sqlalchemy.exc import DatabaseError
 from models import DBSession, VideoCategory, HotFeeds, SubTitle
 from gui import BaseWin, VideoCategoryWin, AccountWin, UploadedWin
 
-
 logger = logging.getLogger('server')
 
 
@@ -56,7 +55,14 @@ class MainWin(BaseWin):
         self.all_video_category = None
         self.sub_categorys = None  # 当前分类对应的所有子分类
 
-        self.uploaded_video_list = list()   # 已上传视频列表
+        # 上传进度
+        self.upload_rate = 0
+        self.current_progress = 1       # 记录当前进度
+        self.total_value = 10000        # 记录总进度大小
+
+        self.upload_error = None        # 记录上传时出现的错误
+
+        self.uploaded_video_list = list()  # 已上传视频列表
 
         # 上传标记
         # 0默认
@@ -126,7 +132,7 @@ class MainWin(BaseWin):
              sg.Text('视频', text_color=self.highlight_color),
              sg.Text('和'),
              sg.Text('字幕SRT', text_color=self.highlight_color),
-             sg.Text('文件')
+             sg.Text('文件', auto_size_text=True)
              ],
             [
                 sg.Text('视频文件'), sg.InputText(key='input_video'),
@@ -142,9 +148,9 @@ class MainWin(BaseWin):
                     self.all_video_category,
                     default_value=self.current_category, size=(12, 0),
                     key='video_big_category',
-                    enable_events=True, readonly=True,
+                    enable_events=True, readonly=True
                 ),
-                sg.Text(),
+                sg.Text(' ' * 6),
                 sg.Text('视频子类'),
                 sg.Combo(
                     self.sub_categorys, size=(12, 0),
@@ -152,7 +158,7 @@ class MainWin(BaseWin):
                     auto_size_text=False, readonly=True
                 )
             ],
-            [sg.Cancel('重 置', key='reset'), sg.Submit('上 传', key='upload')],
+            [sg.Cancel('重 置', key='reset'), sg.T(' ' * 20), sg.Submit('上 传', key='upload')],
         ]
         return layout
 
@@ -171,6 +177,21 @@ class MainWin(BaseWin):
         self.window['input_srt'].update('')
         self.window['video_big_category'].update('')
         self.window['video_subcategory'].update('')
+
+    def percentage(self, consumed_bytes, total_bytes):
+        """
+        上传进度计算
+        当无法确定待上传的数据长度时，total_bytes的值为None。
+        :param consumed_bytes: 已上传字节大小
+        :param total_bytes: 总字节大小
+        :return:
+        """
+        if total_bytes:
+            rate = int(100 * (float(consumed_bytes) / float(total_bytes)))
+            self.upload_rate = rate
+            self.current_progress = consumed_bytes
+            self.total_value = total_bytes
+            print(f'\r已上传{rate}% ', end='')
 
     def upload_video_info(self, value_dict: dict):
         """
@@ -242,10 +263,12 @@ class MainWin(BaseWin):
         srt_save_path = oss_save_dir + '/' + srt_save_name
 
         try:
-            video_url = utils.oss_server.put_obj_from_file(video_save_path, video_path)
-            srt_url = utils.oss_server.put_obj_from_file(srt_save_path, srt_path)
+            video_url = utils.oss_server.put_obj_from_file(video_save_path, video_path,
+                                                           progress_callback=self.percentage)
+            srt_url = utils.oss_server.put_obj_from_file(srt_save_path, srt_path, progress_callback=self.percentage)
         except Exception as e:
             self.upload_flag = 2  # 标记上传失败
+            self.upload_error = e
             logger.error(e)
             return
 
@@ -303,6 +326,7 @@ class MainWin(BaseWin):
                     session.add(sub_title)
             except (Exception, DatabaseError) as e:
                 self.upload_flag = 3  # 保存数据库失败
+                self.upload_error = e
                 session.rollback()
                 logger.error(e)
                 return
@@ -348,23 +372,31 @@ class MainWin(BaseWin):
         :return:
         """
         if self.upload_flag in (2, 3, 4):
-            sg.popup_animated(image_source=None)  # 关闭等待动画
+            # sg.OneLineProgressMeterCancel(key='upload_rate')
+            # sg.popup_animated(image_source=None)  # 关闭等待动画
             self.window.enable()
 
         if self.upload_flag == 1:
             # 正在上传视频
-            sg.popup_animated(image_source=sg.DEFAULT_BASE64_LOADING_GIF, message='上传视频中...')
+            # sg.popup_animated(image_source=sg.DEFAULT_BASE64_LOADING_GIF, message=f'已上传 {self.upload_rate}%')
+            sg.OneLineProgressMeter(
+                '上传进度',
+                self.current_progress,
+                self.total_value,
+                'upload_rate',
+                '阿里OSS上传进度'
+            )
 
         elif self.upload_flag == 2:
             # 上传失败
             self.upload_flag = 0
-            msg = '上传视频、字幕srt文件到阿里OSS失败\n'
+            msg = f'上传视频、字幕srt文件到阿里OSS失败\n\n {self.upload_error}'
             sg.popup_error(msg, title='上传失败', text_color=settings.POPUP_ERROR_COLOR, font=settings.POPUP_FONT)
 
         elif self.upload_flag == 3:
             # 上传视频成功, 但保存数据库失败
             self.upload_flag = 0
-            msg = '保存视频信息到数据库失败！！！\n'
+            msg = f'上传视频成功, 但保存视频信息到数据库失败！！！\n\n {self.upload_error}'
             sg.popup_error(msg, title='数据库异常', font=settings.POPUP_FONT, text_color=settings.POPUP_ERROR_COLOR)
 
         elif self.upload_flag == 4:

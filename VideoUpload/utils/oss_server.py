@@ -3,14 +3,29 @@
 # @Author: Hui
 # @Desc: { 阿里OSS对象存储工具模块 }
 # @Date: 2021/05/28 18:28
+import sys
 import oss2
 
 
-def put_obj_from_file(save_path, local_path):
+def percentage(consumed_bytes, total_bytes):
+    """
+    上传进度计算
+    :param consumed_bytes: 已上传字节大小
+    :param total_bytes: 总字节大小
+    :return:
+    """
+    if total_bytes:
+        rate = int(100 * (float(consumed_bytes) / float(total_bytes)))
+        print(f'\r{rate}% ', end='')
+        sys.stdout.flush()
+
+
+def put_obj_from_file(save_path, local_path, progress_callback=None):
     """
     上传文件到阿里OSS中
     :param save_path: bucket下的保存路径
     :param local_path: 本地文件路径
+    :param progress_callback: 上传进度回调函数，默认为 None
     :return:
     """
     from settings import OSSConfigManage
@@ -24,7 +39,7 @@ def put_obj_from_file(save_path, local_path):
 
     bucket = oss2.Bucket(auth, oss_config.endpoint, oss_config.bucket_name)
 
-    bucket.put_object_from_file(save_path, local_path)
+    bucket.put_object_from_file(save_path, local_path, progress_callback=progress_callback)
     file_url = 'https://' + oss_config.bucket_name + '.' + oss_config.endpoint + '/' + save_path
     return file_url
 

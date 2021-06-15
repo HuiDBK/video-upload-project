@@ -25,6 +25,9 @@ class BaseWin(object):
             layout=self.layout,
             font=settings.WIN_FONT,
             element_padding=settings.ELEMENT_PAD,  # 元素边距
+            # auto_size_text=True,
+            resizable=True,
+            element_justification='center',
             finalize=True,
         )
 
@@ -47,8 +50,6 @@ class BaseWin(object):
         """
         窗口统一处理事件
         """
-        # 开启另一个窗口时,让主窗口不可用,防止用户刻意多次点击造成多个窗口
-        # self.window.disable()
 
         while True:
             event, value_dict = self.window.read()
@@ -57,9 +58,6 @@ class BaseWin(object):
             if event in (sg.WIN_CLOSED,):
                 self.quit()
                 break
-
-        # 恢复窗口可用
-        # self.window.enable()
 
     def quit(self):
         """退出窗口"""
