@@ -14,18 +14,43 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 作者信息
 AUTHOR = '忆想不到的晖'
-VERSION = 'V1.0.0'
+VERSION = 'V1.1.0'
 EMAIL = 'huidbk@qq.com'
 DESC = '用代码谱写生活，让世界更有趣！！！'
 COPYRIGHT = 'CopyRight©2020-2021 编程小灰 ithui.top 赣ICP备20000693号'
 
-# 已上传视频信息json文件
+# 上传视频信息json文件
 UPLOADED_VIDEO_JSON = os.path.join(BASE_DIR, 'logs/uploaded_video.json')
 
+
+# 上传视频状态类
+class UploadStatus:
+    """
+    上传视频状态类
+
+    0 默认状态
+
+    1 视频正在上传
+
+    2 视频上传到OSS成功、保存数据库失败
+
+    3 视频上传到OSS成功, 保存数据库成功
+
+    4 上传视频到OSS失败
+    """
+
+    DEFAULT = 0
+    UPLOADING = 1
+    UPLOAD_OK_SAVE_FAILED = 2
+    UPLOAD_OK_SAVE_SUCCESS = 3
+    UPLOAD_FAILED = 4
+
+
 # --------------------------- 窗口的标题配置 ---------------------------
+
 MAIN_WIN_TITLE = 'OSS上传视频'
 CATEGORY_WIN_TITLE = '视频分类管理'
-UPLOADED_WIN_TITLE = '已上传视频信息'
+UPLOADED_WIN_TITLE = '上传视频信息'
 ACCOUNT_WIN_TITLE = '数据库与OSS管理'
 
 # --------------------------- 窗口的基本样式配置 ---------------------------

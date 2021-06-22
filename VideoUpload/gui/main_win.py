@@ -13,6 +13,7 @@ import settings
 import threading
 import PySimpleGUI as sg
 from pysubs2 import SSAFile
+from settings import UploadStatus
 from settings import OSSConfigManage
 from datetime import datetime, timedelta
 from sqlalchemy.exc import DatabaseError
@@ -27,8 +28,9 @@ class MainWin(BaseWin):
 
     # 菜单项
     menus = [
-        ['已上传视频信息', [
-            '查看上传视频信息::show_uploaded_video']],
+        ['上传视频信息', [
+            '查看上传视频信息::show_uploaded_video',
+            '查看保存数据库失败信息::show_save_failed_video']],
 
         ['视频分类设置', [
             '添加视频分类::add_video_category',
@@ -57,20 +59,15 @@ class MainWin(BaseWin):
 
         # 上传进度
         self.upload_rate = 0
-        self.current_progress = 1       # 记录当前进度
-        self.total_value = 10000        # 记录总进度大小
+        self.current_progress = 1  # 记录当前进度
+        self.total_value = 10000  # 记录总进度大小
 
-        self.upload_error = None        # 记录上传时出现的错误
+        self.upload_error = None  # 记录上传时出现的错误
 
         self.uploaded_video_list = list()  # 已上传视频列表
 
-        # 上传标记
-        # 0默认
-        # 1正在上传视频
-        # 2上传视频失败
-        # 3视频信息保存数据库失败
-        # 4上传视频成功并成功保存到了数据库
-        self.upload_flag = 0
+        # 上传视频状态
+        self.upload_status = UploadStatus.DEFAULT
 
         self.init_data()
         super().__init__(title)
@@ -234,9 +231,12 @@ class MainWin(BaseWin):
 
         logger.debug('有效参数')
         logger.debug('开启线程上传视频')
+
         # 标记正在上传视频
-        self.upload_flag = 1
+        self.upload_status = UploadStatus.UPLOADING
         self.window.disable()
+
+        # 开线程上传视频
         params = [video_path, srt_path, video_big_category, video_subcategory]
         upload_thread = threading.Thread(target=self._upload_video_info, args=params)
         upload_thread.start()
@@ -251,10 +251,14 @@ class MainWin(BaseWin):
         :return:
         """
 
+        upload_status = self.upload_status
+
         # 把视频存储到阿里OSS中
         video_item_id = str(int(time.time())) + str(random.randint(100, 999))  # 生成视频唯一id
         video_item_id = int(video_item_id)
+
         logger.debug(f'视频唯一id -> {video_item_id}, len -> {len(str(video_item_id))}')
+
         video_save_name = f'{video_item_id}.mp4'
         srt_save_name = f'{video_item_id}.srt'
         oss_save_dir = OSSConfigManage().oss_save_dir
@@ -267,7 +271,9 @@ class MainWin(BaseWin):
                                                            progress_callback=self.percentage)
             srt_url = utils.oss_server.put_obj_from_file(srt_save_path, srt_path, progress_callback=self.percentage)
         except Exception as e:
-            self.upload_flag = 2  # 标记上传失败
+            # 标记上传失败
+            upload_status = UploadStatus.UPLOAD_FAILED
+            self.upload_status = upload_status
             self.upload_error = e
             logger.error(e)
             return
@@ -292,8 +298,6 @@ class MainWin(BaseWin):
                     sub_url=srt_url
                 )
                 session.add(hot_feeds)
-
-                # a = 1 / 0
 
                 # 保存字幕信息到数据库
                 for subtitle_id, sub in enumerate(subs):
@@ -325,27 +329,35 @@ class MainWin(BaseWin):
                     )
                     session.add(sub_title)
             except (Exception, DatabaseError) as e:
-                self.upload_flag = 3  # 保存数据库失败
+                # 标记保存视频信息上传到OSS成功, 保存到数据库失败
+                upload_status = UploadStatus.UPLOAD_OK_SAVE_FAILED
+                self.upload_status = upload_status
                 self.upload_error = e
-                session.rollback()
+
+                session.rollback()  # 数据回滚
                 logger.error(e)
-                return
             else:
-                self.upload_flag = 4  # 标记上传成功并成功保存数据
+                # 标记上传OSS成功并成功保存到数据库
+                upload_status = UploadStatus.UPLOAD_OK_SAVE_SUCCESS
+                self.upload_status = upload_status
                 session.commit()
-        msg = f'上传视频成功, ' \
-              f'所属大类 -> {video_big_category}' \
-              f'所属子类 -> {video_subcategory}'
-        logger.info(msg)
+
+        if upload_status == UploadStatus.UPLOAD_OK_SAVE_SUCCESS:
+            msg = f'上传视频成功, ' \
+                  f'所属大类 -> {video_big_category}' \
+                  f'所属子类 -> {video_subcategory}'
+            logger.info(msg)
+            self.reset_info()
 
         # 记录每个人上传视频的信息到本地文件
         feeds_dict = hot_feeds.as_dict()
+        feeds_dict['upload_status'] = upload_status  # 添加一个上传状态信息
+
         logger.info(feeds_dict)
+
         self.uploaded_video_list.append(feeds_dict)
         with open(settings.UPLOADED_VIDEO_JSON, mode='w', encoding='utf-8') as f:
             json.dump(self.uploaded_video_list, f, ensure_ascii=False, indent=2)
-
-        self.reset_info()
 
     def update_subcategory(self, value_dict):
         """
@@ -371,12 +383,23 @@ class MainWin(BaseWin):
         检测上传视频状态
         :return:
         """
-        if self.upload_flag in (2, 3, 4):
+
+        # 用于开启主窗口可用状态(window.enable)
+        status_list = [
+            UploadStatus.UPLOAD_FAILED,
+            UploadStatus.UPLOAD_OK_SAVE_FAILED,
+            UploadStatus.UPLOAD_OK_SAVE_SUCCESS
+        ]
+
+        if self.upload_status in status_list:
             # sg.OneLineProgressMeterCancel(key='upload_rate')
             # sg.popup_animated(image_source=None)  # 关闭等待动画
             self.window.enable()
 
-        if self.upload_flag == 1:
+        # logger.debug(f'upload_status: {self.upload_status}')
+
+        if self.upload_status == UploadStatus.UPLOADING and self.upload_rate != 101:
+
             # 正在上传视频
             # sg.popup_animated(image_source=sg.DEFAULT_BASE64_LOADING_GIF, message=f'已上传 {self.upload_rate}%')
             sg.OneLineProgressMeter(
@@ -386,22 +409,24 @@ class MainWin(BaseWin):
                 'upload_rate',
                 '阿里OSS上传进度'
             )
+            if self.upload_rate == 100:
+                self.upload_rate += 1
 
-        elif self.upload_flag == 2:
+        elif self.upload_status == UploadStatus.UPLOAD_FAILED:
             # 上传失败
-            self.upload_flag = 0
+            self.upload_status = UploadStatus.DEFAULT
             msg = f'上传视频、字幕srt文件到阿里OSS失败\n\n {self.upload_error}'
             sg.popup_error(msg, title='上传失败', text_color=settings.POPUP_ERROR_COLOR, font=settings.POPUP_FONT)
 
-        elif self.upload_flag == 3:
-            # 上传视频成功, 但保存数据库失败
-            self.upload_flag = 0
+        elif self.upload_status == UploadStatus.UPLOAD_OK_SAVE_FAILED:
+            # 上传视频到OSS成功, 但保存数据库失败
+            self.upload_status = UploadStatus.DEFAULT
             msg = f'上传视频成功, 但保存视频信息到数据库失败！！！\n\n {self.upload_error}'
             sg.popup_error(msg, title='数据库异常', font=settings.POPUP_FONT, text_color=settings.POPUP_ERROR_COLOR)
 
-        elif self.upload_flag == 4:
-            # 上传成功并成功保存到数据库中
-            self.upload_flag = 0
+        elif self.upload_status == UploadStatus.UPLOAD_OK_SAVE_SUCCESS:
+            # 成功上传视频到OSS并成功保存到数据库中
+            self.upload_status = UploadStatus.DEFAULT
             msg = '上传视频信息到阿里OSS成功, 并成功保存数据\n'
             sg.popup(msg, title='上传视频成功', font=settings.POPUP_FONT, text_color=settings.POPUP_SUCCESS_COLOR)
 
@@ -435,7 +460,7 @@ class MainWin(BaseWin):
             elif 'del_video_category' in event:
                 self.del_video_category()
                 break
-            elif 'show_uploaded_video' in event:
+            elif 'show_uploaded_video' in event or 'show_save_failed_video' in event:
                 self.quit()
                 UploadedWin(title=settings.UPLOADED_WIN_TITLE).run()
                 break
