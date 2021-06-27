@@ -17,7 +17,7 @@ from settings import UploadStatus
 from settings import OSSConfigManage
 from datetime import datetime, timedelta
 from sqlalchemy.exc import DatabaseError
-from models import DBSession, VideoCategory, HotFeeds, SubTitle
+from models import DBSession, VideoCategory, HotFeeds, SubTitle, VideoSubCategory
 from gui import BaseWin, VideoCategoryWin, AccountWin, UploadedWin
 
 logger = logging.getLogger('server')
@@ -209,6 +209,11 @@ class MainWin(BaseWin):
             sg.popup('请把视频上传信息填写完整\n', title='参数不完整', font=settings.POPUP_FONT)
             return
 
+        # if not isinstance(video_subcategory, VideoSubCategory) or \
+        #         str(video_subcategory) == '暂无该子分类':
+        #     print('暂无该子分类')
+        #     return
+
         if not os.path.exists(video_path):
             msg = '视频文件路径错误, 文件不存在!!!\n'
             sg.popup(msg, title='文件不存在', font=settings.POPUP_FONT)
@@ -374,8 +379,12 @@ class MainWin(BaseWin):
             session.add(video_category)
             self.sub_categorys = video_category.sub_categorys
             session.close()
-            if len(self.sub_categorys) == 0:
-                self.sub_categorys = ['暂无分类']
+            # if len(self.sub_categorys) == 0:
+            #     self.sub_categorys = ['暂无分类']
+            #     # self.window['video_subcategory'].update(disabled=True)
+            # else:
+            #     # self.window['video_subcategory'].update(disabled=False)
+            #     pass
             self.window['video_subcategory'].update(values=self.sub_categorys)
 
     def _check_upload_status(self):
@@ -392,7 +401,7 @@ class MainWin(BaseWin):
         ]
 
         if self.upload_status in status_list:
-            # sg.OneLineProgressMeterCancel(key='upload_rate')
+            sg.OneLineProgressMeterCancel(key='upload_rate')
             # sg.popup_animated(image_source=None)  # 关闭等待动画
             self.window.enable()
 
